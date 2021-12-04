@@ -1,0 +1,8 @@
+prefix: '$'
+version: 1.0.0
+
+embed:
+  colour: 0xf05f19
+  footer:
+    text: 'RantBot | Programmed by Jelly#6161'
+    url: 'https://wallpaperaccess.com/full/4547484.jpg'
