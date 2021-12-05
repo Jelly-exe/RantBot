@@ -1,10 +1,13 @@
+import asyncio
 import inspect
 import time
 
 import discord
+import requests
 from discord.ext import commands
 
 from Utils.classes import Command, Group
+from Utils.database import insert, fetch
 
 
 class BasicAdminCommands(commands.Cog):
@@ -79,6 +82,34 @@ class BasicAdminCommands(commands.Cog):
         client = self.client
 
         thing = name.split("#")
+
+        response = requests.get(f'https://europe.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{thing[0]}/{thing[1]}?api_key={client.bot["riot_token"]}').json()
+        insert("INSERT INTO Users(userId, puuid, gameName, tagLine) VALUES(?, ?, ?, ?)", (user.id, response["puuid"], response["gameName"], response["tagLine"]))
+
+        matchList = requests.get(f'https://eu.api.riotgames.com/val/match/v1/matchlists/by-puuid/{response["puuid"]}?api_key={client.bot["riot_token"]}').json()
+        databaseResult = fetch(f'SELECT matchId FROM Matches WHERE puuid = "{response["puuid"]}"')
+        currentCache = [i[0] for i in databaseResult]
+
+        for i in matchList["history"]:
+            if i["matchId"] not in currentCache:
+                client.addMatchId({"puuid": response["puuid"], "matchId": i["matchId"]})
+
+        timeEst = client.getTimeEstimate()
+        embed = discord.Embed(
+            title='Linking User',
+            description=f'{user.mention} has been linked with `{name}`.\n\n<a:loading:916645684537589760> Loading data... (Estimate {timeEst}s left)',
+            colour=client.config['embed']['colour']
+        )
+        message = await context.send(embed=embed)
+
+        while timeEst > 0:
+            embed.description = f'{user.mention} has been linked with `{name}`.\n\n<a:loading:916645684537589760> Loading data... (Estimate {timeEst}s left)'
+            await message.edit(embed=embed)
+            await asyncio.sleep(5)
+            timeEst -= 5
+
+        embed.description = f'{user.mention} has been linked with `{name}`.\n\n✅ Data Loaded'
+        await message.edit(embed=embed)
 
 
 def setup(client):

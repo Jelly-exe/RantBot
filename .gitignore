@@ -2,3 +2,4 @@ bot.yml
 venv/*
 .idea/*
 __pycache__/*
+Database.db

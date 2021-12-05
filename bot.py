@@ -1,10 +1,10 @@
 import os
 
+import requests
 import yaml
 
 import discord
 from discord.ext import commands
-
 import Utils.classes
 from Utils import colours
 from datetime import datetime
@@ -35,6 +35,9 @@ class RantBot(commands.Bot):
         self.bot = yaml.load(open("bot.yml", "r"), Loader=yaml.FullLoader)
         self.config = yaml.load(open("config.yml", "r"), Loader=yaml.FullLoader)
 
+        print(f'{colours.OKGREEN}{self._displayStep()}. Store Valorant Content')
+        self.content = requests.get(f'https://eu.api.riotgames.com/val/content/v1/contents?api_key={self.bot["riot_token"]}').json()
+
         print(f'{colours.OKGREEN}{self._displayStep()}. Initializing the bot')
         super().__init__(command_prefix=self.config["prefix"],
                          help_command=None,
@@ -53,6 +56,19 @@ class RantBot(commands.Bot):
         self.token = self.bot["token"] if not self.bot['dev'] else self.bot["dev_token"]
 
         self._loadCogs()
+        self.matchIds = []
+
+    def getMatchId(self):
+        if len(self.matchIds) > 0:
+            return self.matchIds.pop(0)
+        else:
+            return False
+
+    def addMatchId(self, matchId):
+        self.matchIds.append(matchId)
+
+    def getTimeEstimate(self):
+        return len(self.matchIds)*2
 
     def _loadCogs(self):
         for i in os.listdir('Cogs'):
